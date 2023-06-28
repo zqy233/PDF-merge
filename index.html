@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PDF合并</title>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  </head>
+  <body>
+    <input type="file" id="fileInput" multiple />
+    <button onclick="previewMergePDF()">预览合并的PDF</button>
+    <button onclick="downloadMergePDF()">下载合并的PDF</button>
+    <script>
+      async function previewMergePDF() {
+        const fileInput = document.getElementById("fileInput");
+        const files = fileInput.files;
+        if (files.length < 2) {
+          alert("请至少选择两个PDF文件进行合并！");
+          return;
+        }
+        // 创建一个新的PDF文档
+        const mergedPdf = await PDFLib.PDFDocument.create();
+        // 遍历选择的每个文件
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const reader = new FileReader();
+          // 读取文件内容
+          const fileContents = await new Promise((resolve, reject) => {
+            reader.onload = function (event) {
+              resolve(event.target.result);
+            };
+            reader.onerror = function (event) {
+              reject(new Error("文件读取错误。"));
+            };
+            reader.readAsArrayBuffer(file);
+          });
+          // 将PDF文件添加到合并的PDF文档中
+          const pdf = await PDFLib.PDFDocument.load(fileContents);
+          const copiedPages = await mergedPdf.copyPages(
+            pdf,
+            pdf.getPageIndices()
+          );
+          copiedPages.forEach((page) => {
+            mergedPdf.addPage(page);
+          });
+        }
+        // 使用浏览器自带预览功能，预览合并后的PDF
+        const mergedPdfBytes = await mergedPdf.save();
+        const mergedPdfBlob = new Blob([mergedPdfBytes], {
+          type: "application/pdf",
+        });
+        const fileURL = URL.createObjectURL(mergedPdfBlob);
+        window.open(fileURL);
+      }
+      async function downloadMergePDF() {
+        const fileInput = document.getElementById("fileInput");
+        const files = fileInput.files;
+        if (files.length < 2) {
+          alert("请至少选择两个PDF文件进行合并！");
+          return;
+        }
+        const mergedPdf = await PDFLib.PDFDocument.create();
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const reader = new FileReader();
+          const fileContents = await new Promise((resolve, reject) => {
+            reader.onload = function (event) {
+              resolve(event.target.result);
+            };
+            reader.onerror = function (event) {
+              reject(new Error("文件读取错误。"));
+            };
+            reader.readAsArrayBuffer(file);
+          });
+          const pdf = await PDFLib.PDFDocument.load(fileContents);
+          const copiedPages = await mergedPdf.copyPages(
+            pdf,
+            pdf.getPageIndices()
+          );
+          copiedPages.forEach((page) => {
+            mergedPdf.addPage(page);
+          });
+        }
+        const mergedPdfFile = await mergedPdf.saveAsBase64();
+        const downloadLink = document.createElement("a");
+        downloadLink.href = "data:application/pdf;base64," + mergedPdfFile;
+        downloadLink.download = "merged.pdf";
+        downloadLink.click();
+      }
+    </script>
+  </body>
+</html>
